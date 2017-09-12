@@ -1,7 +1,7 @@
 
 /*
  *  VirtualDirectory.js
- *  Version 1.0.0
+ *  Version 1.0.1
  *
  *  Copyright (c) izure.org 2017. All rights reserved.
  *  MIT license -> https://izure.org
@@ -413,6 +413,28 @@ class VirtualDirectory {
 		}
 		this.currentPath = path;
 		this.refresh();
+	}
+
+	get(path) {
+		path = VirtualDirectory.adaptPath(path);
+		let iteminfo;
+		try {
+			iteminfo = this.stat(path);
+		}
+		catch (e) {
+			throw e;
+		}
+		const target = iteminfo.isDirectory() ? this.directorys : this.files;
+		let element = null;
+		for (const data of target.entries()) {
+			const tarelem = data[0];
+			const item = data[1];
+			if (iteminfo.id === item.id) {
+				element = tarelem;
+				break;
+			}
+		}
+		return element;
 	}
 
 };
