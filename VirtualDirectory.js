@@ -304,7 +304,7 @@ class VirtualDirectory {
 	}
 
 	refresh() {
-		const items = this.element.querySelectorAll('*');
+		const items = this.element.children;
 		for (const item of items) {
 			item.style.display = 'none';
 			if (this.directorys.has(item)) {
