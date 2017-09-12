@@ -1,7 +1,7 @@
 
 /*
  *  VirtualDirectory.js
- *  Version 1.0.1
+ *  Version 1.0.2
  *
  *  Copyright (c) izure.org 2017. All rights reserved.
  *  MIT license -> https://izure.org
@@ -135,7 +135,7 @@ class VirtualDirectory {
 		return stat;
 	}
 
-	toFile(element, path) {
+	toFile(element, path, display = 'block') {
 		if (element instanceof HTMLElement === false) {
 			throw new Error('The first arguments must be instanced object of HTMLElement.');
 		}
@@ -166,6 +166,7 @@ class VirtualDirectory {
 				id: uuid,
 				name: filename,
 				offset: iteminfo.id,
+				display: display,
 				get path() {
 					return VirtualDirectory.getDirectoryPath.call(self, this.offset);
 				}
@@ -180,7 +181,7 @@ class VirtualDirectory {
 		}
 	}
 
-	toDirectory(element, path) {
+	toDirectory(element, path, display = 'block') {
 		if (element instanceof HTMLElement === false) {
 			throw new Error('The first arguments must be instanced object of HTMLElement.');
 		}
@@ -203,6 +204,7 @@ class VirtualDirectory {
 				id: uuid,
 				name: directoryname,
 				offset: dirinfo.id,
+				display: display,
 				get path() {
 					return VirtualDirectory.getDirectoryPath.call(self, this.offset);
 				}
@@ -308,13 +310,13 @@ class VirtualDirectory {
 			if (this.directorys.has(item)) {
 				const iteminfo = this.directorys.get(item);
 				if (iteminfo.path === this.currentPath) {
-					item.style.display = 'block';
+					item.style.display = iteminfo.display;
 				}
 			}
 			if (this.files.has(item)) {
 				const iteminfo = this.files.get(item);
 				if (iteminfo.path === this.currentPath) {
-					item.style.display = 'block';
+					item.style.display = iteminfo.display;
 				}
 			}
 		}
