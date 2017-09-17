@@ -1,7 +1,7 @@
 
 /*
  *  VirtualDirectory.js
- *  Version 1.0.2
+ *  Version 1.0.4
  *
  *  Copyright (c) izure.org 2017. All rights reserved.
  *  MIT license -> https://izure.org
@@ -16,6 +16,7 @@ class VirtualDirectory {
 		this.files = new Map();
 		this.directorys = new Map();
 		this.element = null;
+		this.event = {};
 		this.currentPath = '/';
 	}
 
@@ -117,14 +118,12 @@ class VirtualDirectory {
 		};
 		path = VirtualDirectory.adaptPath(path);
 		for (const directory of this.directorys.values()) {
-			const fullpath = `${directory.path}/${directory.name}`;
-			if (path === VirtualDirectory.adaptPath(fullpath)) {
+			if (path === directory.path) {
 				stat = Object.assign({}, { type: 'directory', path: path}, stat, directory);
 			}
 		}
 		for (const file of this.files.values()) {
-			const fullpath = `${file.path}/${file.name}`;
-			if (path === VirtualDirectory.adaptPath(fullpath)) {
+			if (path === file.path) {
 				stat = Object.assign({}, { type: 'file', path: path }, stat, file);
 			}
 		}
@@ -167,8 +166,11 @@ class VirtualDirectory {
 				name: filename,
 				offset: iteminfo.id,
 				display: display,
-				get path() {
+				get dirname() {
 					return VirtualDirectory.getDirectoryPath.call(self, this.offset);
+				},
+				get path() {
+					return VirtualDirectory.adaptPath(this.dirname + '/' + this.name);
 				}
 			});
 			this.refresh();
@@ -199,14 +201,19 @@ class VirtualDirectory {
 			}
 			catch (e) { };
 			// insert data
-			element.setAttribute('data-vd-directory', true);
+			if (element !== this.element) {
+				element.setAttribute('data-vd-directory', true);
+			}
 			this.directorys.set(element, {
 				id: uuid,
 				name: directoryname,
 				offset: dirinfo.id,
 				display: display,
-				get path() {
+				get dirname() {
 					return VirtualDirectory.getDirectoryPath.call(self, this.offset);
+				},
+				get path() {
+					return VirtualDirectory.adaptPath(this.dirname + '/' + this.name);
 				}
 			});
 			this.refresh();
@@ -309,13 +316,13 @@ class VirtualDirectory {
 			item.style.display = 'none';
 			if (this.directorys.has(item)) {
 				const iteminfo = this.directorys.get(item);
-				if (iteminfo.path === this.currentPath) {
+				if (iteminfo.dirname === this.currentPath) {
 					item.style.display = iteminfo.display;
 				}
 			}
 			if (this.files.has(item)) {
 				const iteminfo = this.files.get(item);
-				if (iteminfo.path === this.currentPath) {
+				if (iteminfo.dirname === this.currentPath) {
 					item.style.display = iteminfo.display;
 				}
 			}
@@ -358,11 +365,13 @@ class VirtualDirectory {
 					if (directory.id !== iteminfo.id) continue;
 					directory.name = basename;
 					directory.offset = dirinfo.id;
+					this.emit('rename', this.stat(directory.path));
 				}
 				for (const file of this.files.values()) {
 					if (file.id !== iteminfo.id) continue;
 					file.name = basename;
 					file.offset = dirinfo.id;
+					this.emit('rename', this.stat(file.path));
 				}
 				this.refresh();
 			}
@@ -383,7 +392,7 @@ class VirtualDirectory {
 		const dirs = [];
 		const files = [];
 		for (const directory of this.directorys.values()) {
-			const dirpath = VirtualDirectory.adaptPath(directory.path);
+			const dirpath = VirtualDirectory.adaptPath(directory.dirname);
 			if (dirpath === path) {
 				// except root directory
 				if (directory.name.length === 0) continue;
@@ -391,7 +400,7 @@ class VirtualDirectory {
 			}
 		}
 		for (const file of this.files.values()) {
-			const filepath = VirtualDirectory.adaptPath(file.path);
+			const filepath = VirtualDirectory.adaptPath(file.dirname);
 			if (filepath === path) {
 				files.push(file.name);
 			}
@@ -415,6 +424,7 @@ class VirtualDirectory {
 		}
 		this.currentPath = path;
 		this.refresh();
+		this.emit('cd', iteminfo);
 	}
 
 	get(path) {
@@ -437,6 +447,59 @@ class VirtualDirectory {
 			}
 		}
 		return element;
+	}
+
+	fromElement(element) {
+		const dirinfo = this.directorys.get(element);
+		const fileinfo = this.files.get(element);
+		if (!(dirinfo || fileinfo)) {
+			return null;
+		}
+		if (dirinfo) {
+			let info;
+			try {
+				info = this.stat(dirinfo.path);
+			}
+			catch (e) { throw e }
+			return info;
+		}
+		if (fileinfo) {
+			let info;
+			try {
+				info = this.stat(fileinfo.path);
+			}
+			catch (e) { throw e }
+			return info;
+		}
+	}
+
+	on(e, fn) {
+		if (e in this.event === false) {
+			this.event[e] = [];
+		}
+		if (fn) {
+			this.event[e].push(fn);
+		}
+	}
+
+	off(e, fn = null) {
+		if (e in this.event === false) {
+			return;
+		}
+		if (fn === null) this.event[e] = [];
+		else {
+			const index = this.event[e].indexOf(fn);
+			this.event[e].splice(index, 1);
+		}
+	}
+
+	emit(e, item) {
+		if (e in this.event === false) {
+			return;
+		}
+		for (const event of this.event[e]) {
+			event(item);
+		}
 	}
 
 };
